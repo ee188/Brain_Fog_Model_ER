@@ -8,11 +8,11 @@ import joblib
 st.set_page_config(
     page_title="Brain Fog Risk Estimate",
     page_icon="🧠",
-    layout="wide"
+    layout="centered"
 )
 
 # -----------------------------------
-# Minimal styling
+# Styling
 # -----------------------------------
 st.markdown("""
 <style>
@@ -20,43 +20,67 @@ html, body, [class*="css"] {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
+.block-container {
+    max-width: 780px;
+    padding-top: 2.2rem;
+    padding-bottom: 3rem;
+}
+
+h1, h2, h3 {
+    letter-spacing: -0.01em;
+}
+
 .main-title {
-    font-size: 2.6rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    margin-bottom: 0.3rem;
+    font-size: 2.2rem;
+    font-weight: 650;
+    margin-bottom: 0.35rem;
+    color: #222;
 }
 
 .subtext {
-    font-size: 1.05rem;
+    font-size: 1rem;
+    line-height: 1.65;
     color: #666;
-    max-width: 900px;
-    margin-bottom: 1.4rem;
+    margin-bottom: 1.5rem;
+}
+
+.section-label {
+    font-size: 0.92rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #888;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+}
+
+.divider {
+    border-top: 1px solid #ececec;
+    margin: 1.5rem 0 0.5rem 0;
+}
+
+.note {
+    color: #666;
+    font-size: 0.96rem;
     line-height: 1.6;
 }
 
-.section-title {
-    font-size: 1.15rem;
+.result-wrap {
+    margin-top: 1rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+
+.result-title {
+    font-size: 1.35rem;
     font-weight: 600;
-    margin-top: 1.2rem;
-    margin-bottom: 0.35rem;
-}
-
-.result-box {
-    padding: 0.3rem 0 0.7rem 0;
-    margin-top: 0.8rem;
-}
-
-.result-label {
-    font-size: 1.5rem;
-    font-weight: 650;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.2rem;
 }
 
 .result-prob {
-    font-size: 1.05rem;
-    color: #444;
-    margin-bottom: 0.45rem;
+    font-size: 1rem;
+    color: #555;
+    margin-bottom: 0.6rem;
 }
 
 .low {
@@ -64,30 +88,17 @@ html, body, [class*="css"] {
 }
 
 .moderate {
-    color: #a66a00;
+    color: #9a6700;
 }
 
 .high {
-    color: #b00020;
+    color: #b42318;
 }
 
-.small-note {
-    font-size: 0.92rem;
+.small {
     color: #777;
-    line-height: 1.5;
-}
-
-.soft-box {
-    background: #f7f7f7;
-    border-radius: 0.9rem;
-    padding: 1rem 1rem;
-    margin-top: 0.7rem;
-    margin-bottom: 1rem;
-}
-
-.sidebar-note {
     font-size: 0.9rem;
-    color: #777;
+    line-height: 1.6;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -180,19 +191,19 @@ def risk_label_and_message(prob: float):
         return (
             "Low likelihood",
             "low",
-            "This suggests a relatively low likelihood of reported memory or concentration difficulty."
+            "The model estimates a relatively low likelihood of reported confusion or memory difficulty."
         )
     elif prob < 0.50:
         return (
             "Moderate likelihood",
             "moderate",
-            "This suggests a moderate likelihood of reported memory or concentration difficulty."
+            "The model estimates a moderate likelihood of reported confusion or memory difficulty."
         )
     else:
         return (
             "High likelihood",
             "high",
-            "This suggests a higher likelihood of reported memory or concentration difficulty."
+            "The model estimates a higher likelihood of reported confusion or memory difficulty."
         )
 
 # -----------------------------------
@@ -200,176 +211,114 @@ def risk_label_and_message(prob: float):
 # -----------------------------------
 st.markdown('<div class="main-title">Brain Fog Risk Estimate</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="subtext">This educational tool estimates the likelihood of reported confusion or memory difficulty using health, sleep, mood, and medication-related inputs. It is designed as a healthcare informatics prototype based on public survey data.</div>',
+    '<div class="subtext">This educational tool estimates the likelihood of reported confusion or memory difficulty using health, sleep, mood, and medication-related information. It is based on a machine learning model trained on public survey data.</div>',
     unsafe_allow_html=True
 )
 
-top_left, top_right = st.columns([2.2, 1])
-
-with top_left:
-    st.markdown(
-        """
-        <div class="soft-box">
-        <strong>What this tool does</strong><br>
-        It estimates a statistical risk based on patterns found in survey data. It does not diagnose brain fog, identify a cause, or recommend treatment.
-        </div>
-        """,
-        unsafe_allow_html=True
+with st.expander("About this tool"):
+    st.write(
+        "This is an educational prototype. It does not diagnose brain fog, identify a cause, or recommend treatment."
+    )
+    st.write(
+        "The result reflects a statistical pattern found in survey data and should not be used as medical advice."
     )
 
-with top_right:
-    with st.expander("How to use this tool"):
-        st.write(
-            """
-            1. Enter your health and sleep information in the sidebar.  
-            2. Choose the symptom and income categories that fit best.  
-            3. Check any medication classes that apply.  
-            4. Click **See my result** to view the estimate.  
-            """
-        )
-        st.write(
-            "The result is an educational risk estimate, not a medical opinion."
-        )
-
 # -----------------------------------
-# Sidebar inputs
+# Main form
 # -----------------------------------
-st.sidebar.markdown("## Inputs")
-st.sidebar.markdown('<div class="sidebar-note">Adjust the information below, then click <strong>See my result</strong>.</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-label">Basic information</div>', unsafe_allow_html=True)
 
-st.sidebar.markdown("### Personal and health")
-age = st.sidebar.slider(
-    "Age",
-    min_value=18,
-    max_value=80,
-    value=40,
-    help="Age in years."
-)
+col1, col2 = st.columns(2)
+with col1:
+    age = st.slider("Age", 18, 80, 40)
+    sex = st.radio("Sex", ["Female", "Male"], horizontal=True)
+    bmi = st.slider("BMI", 14.0, 60.0, 28.0, 0.1)
 
-sex = st.sidebar.radio(
-    "Sex",
-    options=["Female", "Male"],
-    help="Biologic sex category used in the source survey data."
-)
+with col2:
+    education = st.selectbox(
+        "Highest education level",
+        [
+            "Less than 9th grade",
+            "9th–11th grade",
+            "High school / GED",
+            "Some college / Associate degree",
+            "College graduate or above"
+        ]
+    )
+    income_category = st.selectbox(
+        "Household income level",
+        [
+            "Below poverty line",
+            "Around poverty line",
+            "Lower income",
+            "Middle income",
+            "Higher income"
+        ]
+    )
+    med_count = st.slider("Number of current medications", 0, 22, 1)
 
-education = st.sidebar.selectbox(
-    "Highest education level",
-    options=[
-        "Less than 9th grade",
-        "9th–11th grade",
-        "High school / GED",
-        "Some college / Associate degree",
-        "College graduate or above"
-    ],
-    help="Education level grouped using the original survey categories."
-)
-
-income_category = st.sidebar.selectbox(
-    "Household income level",
-    options=[
-        "Below poverty line",
-        "Around poverty line",
-        "Lower income",
-        "Middle income",
-        "Higher income"
-    ],
-    help="This is a simplified version of the income-to-poverty ratio used by the model."
-)
 income_ratio = map_income_category(income_category)
 
-bmi = st.sidebar.slider(
-    "BMI",
-    min_value=14.0,
-    max_value=60.0,
-    value=28.0,
-    step=0.1,
-    help="Body Mass Index, a rough measure based on height and weight."
-)
+st.markdown('<div class="section-label">Sleep and mood</div>', unsafe_allow_html=True)
 
-st.sidebar.markdown("### Sleep and mood")
-sleep_hours = st.sidebar.slider(
-    "Average sleep per night (hours)",
-    min_value=2.0,
-    max_value=14.0,
-    value=7.0,
-    step=0.5,
-    help="Typical number of hours slept per night."
-)
+col3, col4 = st.columns(2)
+with col3:
+    sleep_hours = st.slider("Average sleep per night (hours)", 2.0, 14.0, 7.0, 0.5)
+with col4:
+    phq_category = st.selectbox(
+        "Depression symptom level",
+        [
+            "Minimal (0–4)",
+            "Mild (5–9)",
+            "Moderate (10–14)",
+            "Moderately severe (15–19)",
+            "Severe (20–27)"
+        ]
+    )
 
-phq_category = st.sidebar.selectbox(
-    "Depression symptom level",
-    options=[
-        "Minimal (0–4)",
-        "Mild (5–9)",
-        "Moderate (10–14)",
-        "Moderately severe (15–19)",
-        "Severe (20–27)"
-    ],
-    help="Based on PHQ-9 severity categories. Higher levels reflect more depressive symptoms."
-)
 phq9_total = map_phq_category(phq_category)
 
-st.sidebar.markdown("### Medication burden")
-med_count = st.sidebar.slider(
-    "Number of current medications",
-    min_value=0,
-    max_value=22,
-    value=1,
-    help="Approximate number of medications currently taken."
+st.markdown(
+    '<div class="note">PHQ-9 is a common depression symptom questionnaire. Higher categories reflect greater symptom burden.</div>',
+    unsafe_allow_html=True
 )
 
-st.sidebar.markdown("### Medication classes")
-st.sidebar.caption("Check any classes that apply.")
+st.markdown('<div class="section-label">Medication classes</div>', unsafe_allow_html=True)
 
-is_benzo = st.sidebar.checkbox("Benzodiazepine", help="Examples: lorazepam, alprazolam, clonazepam")
-is_antidepressant = st.sidebar.checkbox("Antidepressant", help="Examples: sertraline, fluoxetine, duloxetine")
-is_antipsychotic = st.sidebar.checkbox("Antipsychotic", help="Examples: quetiapine, risperidone, olanzapine")
-is_sedative = st.sidebar.checkbox("Sedative / sleep medication", help="Examples: zolpidem, eszopiclone")
-is_anticholinergic = st.sidebar.checkbox("Anticholinergic medication", help="Examples: diphenhydramine, oxybutynin")
-is_opioid = st.sidebar.checkbox("Opioid pain medication", help="Examples: hydrocodone, tramadol, oxycodone")
-is_anticonvulsant = st.sidebar.checkbox("Anticonvulsant / nerve pain medication", help="Examples: gabapentin, pregabalin")
-is_muscle_relaxant = st.sidebar.checkbox("Muscle relaxant", help="Examples: cyclobenzaprine, methocarbamol")
-is_steroid = st.sidebar.checkbox("Steroid", help="Examples: prednisone, methylprednisolone")
-is_stimulant = st.sidebar.checkbox("Stimulant", help="Examples: methylphenidate, amphetamine")
+c1, c2 = st.columns(2)
+with c1:
+    is_benzo = st.checkbox("Benzodiazepine")
+    is_antidepressant = st.checkbox("Antidepressant")
+    is_antipsychotic = st.checkbox("Antipsychotic")
+    is_sedative = st.checkbox("Sedative / sleep medication")
+    is_anticholinergic = st.checkbox("Anticholinergic medication")
 
-predict_clicked = st.sidebar.button("See my result", use_container_width=True)
+with c2:
+    is_opioid = st.checkbox("Opioid pain medication")
+    is_anticonvulsant = st.checkbox("Anticonvulsant / nerve pain medication")
+    is_muscle_relaxant = st.checkbox("Muscle relaxant")
+    is_steroid = st.checkbox("Steroid")
+    is_stimulant = st.checkbox("Stimulant")
 
-# -----------------------------------
-# Main explanations
-# -----------------------------------
-st.markdown('<div class="section-title">What the inputs mean</div>', unsafe_allow_html=True)
+with st.expander("Examples of medication classes"):
+    st.write("**Benzodiazepines:** lorazepam, alprazolam, clonazepam")
+    st.write("**Antidepressants:** sertraline, fluoxetine, duloxetine")
+    st.write("**Antipsychotics:** quetiapine, olanzapine, risperidone")
+    st.write("**Sedatives / sleep meds:** zolpidem, eszopiclone")
+    st.write("**Anticholinergics:** diphenhydramine, oxybutynin")
+    st.write("**Opioids:** hydrocodone, tramadol, oxycodone")
+    st.write("**Anticonvulsants / nerve pain meds:** gabapentin, pregabalin")
+    st.write("**Muscle relaxants:** cyclobenzaprine, methocarbamol")
+    st.write("**Steroids:** prednisone, methylprednisolone")
+    st.write("**Stimulants:** methylphenidate, amphetamine")
 
-explain_col1, explain_col2 = st.columns(2)
+st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
-with explain_col1:
-    st.write("**Income level**")
-    st.caption(
-        "This app uses broad income categories instead of asking you to enter a technical ratio. Lower categories represent fewer financial resources."
-    )
-
-    st.write("**Depression symptom level**")
-    st.caption(
-        "This is based on PHQ-9 severity groupings. Higher categories reflect greater symptom burden."
-    )
-
-with explain_col2:
-    st.write("**Medication burden**")
-    st.caption(
-        "Taking 5 or more medications is often called polypharmacy in health research."
-    )
-
-    st.write("**Medication classes**")
-    st.caption(
-        "These classes represent medication groups that may relate to mood, sedation, concentration, or cognitive symptoms."
-    )
-
-st.markdown("---")
+predict_clicked = st.button("See my result", use_container_width=True)
 
 # -----------------------------------
-# Prediction
+# Result
 # -----------------------------------
-st.markdown('<div class="section-title">Your result</div>', unsafe_allow_html=True)
-
 if predict_clicked:
     input_df = build_input_df(
         age=age,
@@ -395,19 +344,21 @@ if predict_clicked:
     prob = model.predict_proba(input_df)[0][1]
     risk_label, color_class, message = risk_label_and_message(prob)
 
+    st.markdown('<div class="section-label">Your result</div>', unsafe_allow_html=True)
     st.markdown(
         f"""
-        <div class="result-box">
-            <div class="result-label {color_class}">{risk_label}</div>
+        <div class="result-wrap">
+            <div class="result-title {color_class}">{risk_label}</div>
             <div class="result-prob">Estimated probability: {prob:.1%}</div>
-            <div>{message}</div>
+            <div class="note">{message}</div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
-    st.caption(
-        "This estimate reflects a statistical pattern from survey data. It should not be used to diagnose memory problems, determine a cause, or guide treatment decisions."
+    st.markdown(
+        '<div class="small">This estimate is based on survey patterns, not a clinical evaluation. It should not be used to diagnose memory problems or guide treatment decisions.</div>',
+        unsafe_allow_html=True
     )
 
     with st.expander("Show the values used by the model"):
@@ -415,14 +366,12 @@ if predict_clicked:
 
 else:
     st.markdown(
-        '<div class="small-note">Use the sidebar to enter information, then click <strong>See my result</strong>.</div>',
+        '<div class="small">Enter values above and click <strong>See my result</strong>.</div>',
         unsafe_allow_html=True
     )
 
-# -----------------------------------
-# Footer
-# -----------------------------------
-st.markdown("---")
-st.caption(
-    "Educational healthcare informatics prototype built with public NHANES survey data and machine learning."
+st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="small">Educational healthcare informatics prototype built with public NHANES survey data and machine learning.</div>',
+    unsafe_allow_html=True
 )
